@@ -58,38 +58,40 @@ const SIZE_RATIOS: Record<KeycapSize, number> = {
   "3u": 3,
 };
 
-/** Stop positions in degrees for a square (1u) keycap. */
-const SQUARE_STOPS_DEG = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 264.6, 275.4, 354.6, 360];
+/* ============================
+ * STOP POSITIONS (degrees)
+ * Tune each independently.
+ * ============================ */
 
-function buildSquareConic(colors: string[]): string {
+// 1U keys — the square keycap gradient
+const STOPS_1U = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 264.6, 275.4, 354.6, 360];
+
+// 2U left endcap — outer half has detail, inner half fades to base
+const STOPS_2U_LEFT = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 245, 255, 340, 360];
+
+// 2U right endcap — outer half has detail, inner half fades to base
+const STOPS_2U_RIGHT = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 264.6, 275.4, 335, 360];
+
+function buildConic(colors: string[], positions: number[]): string {
   const stops = colors
-    .map((color, i) => `${color} ${SQUARE_STOPS_DEG[i].toFixed(1)}deg`)
+    .map((color, i) => `${color} ${positions[i].toFixed(1)}deg`)
     .join(", ");
   return `conic-gradient(from 225deg, ${stops})`;
 }
 
-/**
- * Stitched gradient for wide keys — mirrors the Figma approach:
- * each endcap retains detail on its OUTER half and flattens to
- * a shared base color on its inner half, so the seams disappear.
- *
- * Left cap:  keeps stops 0-4, 8-9 (BL/TL corners + bottom), flattens 5-7 to base
- * Right cap: keeps stops 5-7 (TR/BR corners), flattens 0-4, 8-9 to base
- * Fill:      solid base color
- */
 function buildStitchedGradient(colors: string[]): string {
-  const base = colors[1]; // shared fade-to color (e.g. #E0DBD0 for cream)
+  const base = colors[1];
 
-  const leftStops = [colors[0], colors[1], colors[2], colors[3], colors[4], base, base, base, colors[8], colors[9]];
-  const rightStops = [base, base, base, base, base, colors[5], colors[6], colors[7], base, base];
+  const leftColors = [colors[0], colors[1], colors[2], colors[3], colors[4], base, colors[6], colors[7], colors[8], colors[9]];
+  const rightColors = [colors[0], base, base, base, colors[4], colors[5], colors[6], colors[7], colors[8], colors[9]];
 
-  const leftConic = buildSquareConic(leftStops);
-  const rightConic = buildSquareConic(rightStops);
+  const leftConic = buildConic(leftColors, STOPS_2U_LEFT);
+  const rightConic = buildConic(rightColors, STOPS_2U_RIGHT);
 
   return [
     `${leftConic} 0 0 / var(--h) 100% no-repeat`,
     `${rightConic} 100% 0 / var(--h) 100% no-repeat`,
-    base,
+    `linear-gradient(to bottom, ${base} 50%, ${colors[8]})`,
   ].join(", ");
 }
 
@@ -103,5 +105,5 @@ export function buildSideGradient(variant: KeycapVariant, size: KeycapSize): str
     return buildStitchedGradient(colors);
   }
 
-  return buildSquareConic(colors);
+  return buildConic(colors, STOPS_1U);
 }
