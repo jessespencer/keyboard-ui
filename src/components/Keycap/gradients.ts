@@ -1,28 +1,22 @@
 import type { KeycapVariant, KeycapSize } from "./Keycap.types";
 
-/**
- * Each stop in the original conic-gradient mapped to a corner position.
- * The stops are ordered clockwise from 225° (bottom-left corner on a square).
- * Pairs of stops straddle each corner to create the sharp edge transitions.
- */
 interface VariantGradient {
   stops: [string, string, string, string, string, string, string, string, string, string];
-  /** Fraction of the corner-to-corner arc where each stop falls (0–1 within its quadrant) */
 }
 
 const VARIANT_GRADIENTS: Record<Exclude<KeycapVariant, "custom">, VariantGradient> = {
   cream: {
     stops: [
-      "#bfb9ae", // 0%   — BL corner
-      "#d4cfc4", // 1%   — just past BL
-      "#e2ddd4", // 24%  — approaching TL (96% of quadrant)
-      "#d2cdc2", // 27%  — just past TL (108% → 8% into next quadrant)
-      "#d4cfc4", // 48%  — approaching TR
-      "#b8b2a6", // 52%  — just past TR
-      "#b6b0a4", // 74%  — approaching BR
-      "#aca69a", // 77%  — just past BR
-      "#aaa49a", // 99%  — approaching BL return
-      "#bfb9ae", // 100% — BL complete
+      "#b0a898",
+      "#e0dbd0",
+      "#f2ede4",
+      "#ddd8cc",
+      "#e0dbd0",
+      "#a49e90",
+      "#a09a8c",
+      "#908a7c",
+      "#8e8878",
+      "#b0a898",
     ],
   },
   orange: {
@@ -55,7 +49,6 @@ const VARIANT_GRADIENTS: Record<Exclude<KeycapVariant, "custom">, VariantGradien
   },
 };
 
-/** Aspect ratios for each keycap size (width / height). */
 const SIZE_RATIOS: Record<KeycapSize, number> = {
   "1u": 1,
   "1.25u": 1.25,
@@ -65,53 +58,39 @@ const SIZE_RATIOS: Record<KeycapSize, number> = {
   "3u": 3,
 };
 
-const RAD_TO_DEG = 180 / Math.PI;
+/** Stop positions in degrees for a square (1u) keycap. */
+const SQUARE_STOPS_DEG = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 264.6, 275.4, 354.6, 360];
 
-/**
- * Compute the four corner angles as degrees offset from 225° (clockwise),
- * based on width:height ratio.
- *
- * For a square (ratio=1): [0, 90, 180, 270]
- * For a 2:1 rect:         [~18.4, ~71.6, ~198.4, ~251.6]
- */
-function cornerOffsets(ratio: number): [number, number, number, number] {
-  const alpha = Math.atan(ratio) * RAD_TO_DEG;
-  return [
-    alpha - 45,     // bottom-left
-    135 - alpha,    // top-left
-    alpha + 135,    // top-right
-    315 - alpha,    // bottom-right
-  ];
+function buildSquareConic(colors: string[]): string {
+  const stops = colors
+    .map((color, i) => `${color} ${SQUARE_STOPS_DEG[i].toFixed(1)}deg`)
+    .join(", ");
+  return `conic-gradient(from 225deg, ${stops})`;
 }
 
 /**
- * Map the original fixed-percentage stops to angle-adjusted stops.
+ * Stitched gradient for wide keys — mirrors the Figma approach:
+ * each endcap retains detail on its OUTER half and flattens to
+ * a shared base color on its inner half, so the seams disappear.
  *
- * Original pattern (square, corners at 0°/90°/180°/270° from start):
- *   0%, 1%, 24%, 27%, 48%, 52%, 74%, 77%, 99%, 100%
- *
- * Each pair straddles a corner:
- *   [0,1] around BL, [24,27] around TL, [48,52] around TR, [74,77] around BR, [99,100] return to BL
- *
- * We map these by interpolating within each quadrant arc.
+ * Left cap:  keeps stops 0-4, 8-9 (BL/TL corners + bottom), flattens 5-7 to base
+ * Right cap: keeps stops 5-7 (TR/BR corners), flattens 0-4, 8-9 to base
+ * Fill:      solid base color
  */
-function computeStopAngles(ratio: number): number[] {
-  const [bl, tl, tr, br] = cornerOffsets(ratio);
-  // Transition band half-width in degrees (1% of 360° = 3.6°, original ~1.5% per side)
-  const band = 3.6 * (1.5 / 1);
+function buildStitchedGradient(colors: string[]): string {
+  const base = colors[1]; // shared fade-to color (e.g. #E0DBD0 for cream)
+
+  const leftStops = [colors[0], colors[1], colors[2], colors[3], colors[4], base, base, base, colors[8], colors[9]];
+  const rightStops = [base, base, base, base, base, colors[5], colors[6], colors[7], base, base];
+
+  const leftConic = buildSquareConic(leftStops);
+  const rightConic = buildSquareConic(rightStops);
 
   return [
-    bl,              // 0%  — BL corner
-    bl + band,       // 1%  — just past BL
-    tl - band,       // 24% — approaching TL
-    tl + band,       // 27% — just past TL
-    tr - band,       // 48% — approaching TR
-    tr + band,       // 52% — just past TR
-    br - band,       // 74% — approaching BR
-    br + band,       // 77% — just past BR
-    360 - band,      // 99% — approaching BL return
-    360,             // 100%
-  ];
+    `${leftConic} 0 0 / var(--h) 100% no-repeat`,
+    `${rightConic} 100% 0 / var(--h) 100% no-repeat`,
+    base,
+  ].join(", ");
 }
 
 export function buildSideGradient(variant: KeycapVariant, size: KeycapSize): string | undefined {
@@ -119,11 +98,10 @@ export function buildSideGradient(variant: KeycapVariant, size: KeycapSize): str
 
   const { stops: colors } = VARIANT_GRADIENTS[variant];
   const ratio = SIZE_RATIOS[size];
-  const angles = computeStopAngles(ratio);
 
-  const stops = colors
-    .map((color, i) => `${color} ${angles[i].toFixed(1)}deg`)
-    .join(", ");
+  if (ratio >= 2 || ratio <= 0.5) {
+    return buildStitchedGradient(colors);
+  }
 
-  return `conic-gradient(from 225deg, ${stops})`;
+  return buildSquareConic(colors);
 }
