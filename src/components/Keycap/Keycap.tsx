@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { useKeycapPress } from "../../hooks/useKeycapPress";
+import { buildSideGradient } from "./gradients";
 import type { KeycapProps } from "./Keycap.types";
 import styles from "./Keycap.module.css";
 
@@ -16,13 +18,17 @@ export function Keycap({
 }: KeycapProps) {
   const { buttonProps } = useKeycapPress({ onPress, onRelease, disabled });
 
+  const sideGradient = useMemo(() => buildSideGradient(variant, size), [variant, size]);
+
   const customStyle =
     variant === "custom"
       ? ({
           "--custom-face": faceColor,
           "--custom-side": sideColor,
         } as React.CSSProperties)
-      : undefined;
+      : sideGradient
+        ? { background: sideGradient }
+        : undefined;
 
   return (
     <button
