@@ -67,10 +67,10 @@ const SIZE_RATIOS: Record<KeycapSize, number> = {
 const STOPS_1U = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 264.6, 275.4, 354.6, 360];
 
 // 2U left endcap — outer half has detail, inner half fades to base
-const STOPS_2U_LEFT = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 264.6, 275.4, 354.6, 360];
+const STOPS_2U_LEFT = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 240, 255, 354.6, 360];
 
 // 2U right endcap — outer half has detail, inner half fades to base
-const STOPS_2U_RIGHT = [0, 5.4, 84.6, 95.4, 174.6, 185.4, 264.6, 275.4, 354.6, 360];
+const STOPS_2U_RIGHT = [0, 22, 45, 174.6, 185.4, 264.6, 275.4, 430];
 
 function buildConic(colors: string[], positions: number[]): string {
   const stops = colors
@@ -83,7 +83,7 @@ function buildStitchedGradient(colors: string[]): string {
   const base = colors[1];
 
   const leftColors = [...colors];
-  const rightColors = [...colors];
+  const rightColors = ["#8e8878", "#8e8878", colors[3], colors[4], colors[5], colors[6], colors[7], colors[8]];
 
   const leftConic = buildConic(leftColors, STOPS_2U_LEFT);
   const rightConic = buildConic(rightColors, STOPS_2U_RIGHT);
