@@ -16,6 +16,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: #f7f7f7;
   font-family: system-ui, -apple-system, sans-serif;
 }
