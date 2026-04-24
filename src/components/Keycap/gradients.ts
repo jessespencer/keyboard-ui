@@ -80,8 +80,6 @@ function buildConic(colors: string[], positions: number[]): string {
 }
 
 function buildStitchedGradient(colors: string[]): string {
-  const base = colors[1];
-
   const leftColors = [colors[0], colors[1], colors[2], "#e0dbd0", "#e0dbd0", colors[5], "#8e8878", colors[8], colors[9]];
   const rightColors = ["#8e8878", "#8e8878", "#e0dbd0", "#e0dbd0", colors[5], colors[6], "#8e8878", "#8e8878"];
 
